@@ -473,7 +473,7 @@ describe("VoteTally", function test() {
       expect(initialTotalResults).to.equal(tallyData.results.tally.length);
       expect(initialResults.map((result) => result.value)).to.deep.equal(tallyData.results.tally);
 
-      await tallyContract
+      const receipt = await tallyContract
         .addTallyResults({
           voteOptionIndices: indices,
           tallyResults: tallyData.results.tally,
@@ -486,6 +486,15 @@ describe("VoteTally", function test() {
           perVOSpentVoiceCreditsHash: newPerVoteOptionSpentVoiceCreditsCommitment,
         })
         .then((tx) => tx.wait());
+
+      const [event] = await tallyContract.queryFilter(
+        tallyContract.filters.ResultAdded,
+        receipt?.blockNumber,
+        receipt?.blockNumber,
+      );
+
+      expect(event.args[0].toString()).to.eq(indices[0].toString());
+      expect(event.args[1].toString()).to.eq(tallyData.results.tally[0].toString());
 
       const results = await Promise.all(indices.map((index) => tallyContract.getTallyResults(index)));
       const totalResults = await tallyContract.totalTallyResults();
